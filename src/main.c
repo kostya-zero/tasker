@@ -114,17 +114,13 @@ void check_task(const int id) {
     }
     Task t;
     bool found = false;
+    bool new_status = false;
     while (fread(&t, sizeof(Task), 1, f)) {
         if (t.id == id) {
             println("debug: Task found");
             found = true;
-            if (t.done) {
-                t.done = false;
-                println("Task marked as unfinished.");
-            } else {
-                t.done = true;
-                println("Task marked as finished.");
-            }
+            new_status = !t.done;
+            t.done = !t.done;
         }
         fwrite(&t, sizeof(Task), 1, tf);
     }
@@ -139,6 +135,12 @@ void check_task(const int id) {
     if (remove(TASKS_FILE) || rename(TEMP_FILE, TASKS_FILE)) {
         perror("Failed to update tasks file");
         exit(1);
+    }
+
+    if (new_status) {
+        println("Task marked as finished.");
+    } else {
+        println("Task marked as unfinished.");
     }
 }
 
