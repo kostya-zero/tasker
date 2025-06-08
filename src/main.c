@@ -56,7 +56,7 @@ void list_tasks() {
     }
     Task t;
     while (fread(&t, sizeof(Task), 1, f)) {
-        println("[%s] %d: %s", t.id == true ? " " : "+", t.id, t.desc);
+        println("[%s] %d: %s", t.done == true ? " " : "+", t.id, t.desc);
     }
     fclose(f);
 }
@@ -91,12 +91,55 @@ void remove_task(const int id) {
         exit(1);
     }
 
-    if (remove(TASKS_FILE) || rename(TEMP_FILE, TASKS_FILE)) {
+    if (remove(TASKS_FILE) != 0 || rename(TEMP_FILE, TASKS_FILE) != 0) {
         perror("Failed to update tasks file");
         exit(1);
     }
 
     println("Task has been removed");
+}
+
+void check_task(const int id) {
+    FILE *f = fopen(TASKS_FILE, "rb");
+    if (!f) {
+        perror("Failed to open tasks file");
+        exit(1);
+    }
+
+    FILE *tf = fopen(TEMP_FILE, "wb");
+    if (!tf) {
+        perror("Failed to prepare temporary file");
+        fclose(f);
+        exit(1);
+    }
+    Task t;
+    bool found = false;
+    while (fread(&t, sizeof(Task), 1, f)) {
+        if (t.id == id) {
+            println("debug: Task found");
+            found = true;
+            if (t.done) {
+                t.done = false;
+                println("Task marked as unfinished.");
+            } else {
+                t.done = true;
+                println("Task marked as finished.");
+            }
+        }
+        fwrite(&t, sizeof(Task), 1, tf);
+    }
+    fclose(f);
+    fclose(tf);
+
+    if (!found) {
+        println("Task not found");
+        exit(1);
+    }
+
+    if (remove(TASKS_FILE) || rename(TEMP_FILE, TASKS_FILE)) {
+        perror("Failed to update tasks file");
+        exit(1);
+    }
 }
 
 void print_help() {
@@ -131,6 +174,12 @@ int main(const int argc, char *argv[]) {
             return 1;
         }
         remove_task(atoi(argv[2]));
+    } else if (strcmp(argv[1], "check") == 0) {
+        if (argc != 3) {
+            println("Provide an ID of task. Only one argument allowed.");
+            return 1;
+        }
+        check_task(atoi(argv[2]));
     } else {
         println("Unknown command: %s", argv[1]);
         return 1;
