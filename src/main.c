@@ -55,10 +55,15 @@ void list_tasks() {
         return;
     }
     Task t;
+    int count = 0;
     while (fread(&t, sizeof(Task), 1, f)) {
         println("[%s] %d: %s", t.done == true ? " " : "+", t.id, t.desc);
+        count++;
     }
     fclose(f);
+    if (count == 0) {
+        println("No tasks found.");
+    }
 }
 
 void remove_task(const int id) {
